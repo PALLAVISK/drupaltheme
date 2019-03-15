@@ -1,0 +1,610 @@
+<?php
+
+/**
+ * @file
+ * Functions to support theming in the Marinelli theme.
+ */
+
+use Drupal\Component\Utility\Unicode;
+
+define('OUTTAG', (theme_get_setting('outside_tags') ? 'p' : 'h2'));
+
+global $theme_name, $path_to_marinelli;
+$theme_name = \Drupal::theme()->getActiveTheme()->getName();
+$path_to_marinelli = drupal_get_path('theme', 'marinelli');
+include_once $path_to_marinelli . '/inc/logics/layout.inc';
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function marinelli_preprocess_page(&$vars) {
+  // Stores single sidebar presence into a variable.
+  $vars['exception'] = "";
+  if ($vars['page']['sidebar_second']) {
+    $vars['exception'] = 2;
+  }
+  elseif ($vars['page']['sidebar_first']) {
+    $vars['exception'] = 1;
+  }
+  // Adding layout to the theme on choice.
+  $layout_width = theme_get_setting('layout_width');
+  switch ($layout_width) {
+    case 1:
+      $vars['layout_width'] = 'width_1';
+      $vars['#attached']['library'][] = 'marinelli/grid-1000';
+      break;
+
+    case 2:
+      $vars['layout_width'] = 'width_2';
+      $vars['#attached']['library'][] = 'marinelli/grid-960';
+      break;
+
+    default:
+      $vars['layout_width'] = 'width_1';
+      $vars['#attached']['library'][] = 'marinelli/grid-1000';
+      break;
+  }
+  $vars['layout_type_twig'] = (int) theme_get_setting('layout_type');
+  $first = $vars['page']['sidebar_first'];
+  $second = $vars['page']['sidebar_second'];
+  $layoutType = (int) theme_get_setting('layout_type');
+  $exception = (int) $vars['exception'];
+  $vars['context_class'] = marinelli_c_c($first, $second, $layoutType, $exception);
+  $vars['wrapper_class'] = marinelli_w_c($layoutType);
+  $vars['sidebar_class1'] = marinelli_s_c($first, $second, $layoutType, 1);
+  $vars['sidebar_class2'] = marinelli_s_c($first, $second, $layoutType, 2);
+  $vars['border'] = TRUE;
+  $vars['topRegion'] = FALSE;
+  // Special var that checks if we have the top region.
+  if (!$vars['site_logo '] && !$vars['site_name'] && !$vars['site_slogan'] && !$vars['page']['utility_top'] && !$vars['page']['search']) {
+    $vars['topRegion'] = FALSE;
+  }
+}
+
+/**
+ * Additional node variables.
+ */
+function marinelli_preprocess_node(&$vars) {
+  $vars['sticky_text'] = theme_get_setting('sticky_text');
+  $type = $vars['type'];
+  // Custom teaser templates.
+  if ($vars['teaser']) {
+    $vars['theme_hook_suggestions'][] = 'node__teaser';
+  }
+  if ($vars['teaser'] && $vars['type']) {
+    $vars['theme_hook_suggestions'][] = 'node__' . $type . '__teaser';
+  }
+}
+
+/**
+ * Additional block variables.
+ */
+
+/**
+ * Title visibility.
+ */
+function marinelli_preprocess_block(&$vars) {
+
+  $vars['blockhide'] = "";
+  if (($vars['block']->region != "sidebar_first" && $vars['block']->region != "sidebar_second" && $vars['block']->region != "content"  && theme_get_setting('blocks') == 1) || ($vars['block']->region == "utility_top" || $vars['block']->region == "utility_bottom")) {
+    $vars['blockhide'] = "blockhide ";
+  }
+  // Block title tag depends on theme settings and region.
+  $vars['blocktag'] = "h2";
+  if ($vars['block']->region == "topbar" || $vars['block']->region == "utility_top" || $vars['block']->region == "search" || $vars['block']->region == "advertise" || $vars['block']->region == "overcontent" || $vars['block']->region == "overnode") {
+    $vars['blocktag'] = OUTTAG;
+  }
+}
+
+/**
+ * Additional comment variables.
+ */
+function marinelli_preprocess_comment(&$vars) {
+  $vars['classes_array'][] = $vars['zebra'];
+  $user_image = ['width' => 0];
+  if (isset($vars['user']->picture)) {
+    if (!variable_get('user_picture_style')) {
+      $size = variable_get('user_picture_dimensions');
+      $size = explode('x', $size);
+      $user_image['width'] = $size[0];
+    }
+    else {
+      if ($picture = file_load($vars['comment']->picture->fid)) {
+        $user_image = image_get_info(image_style_path(variable_get('user_picture_style'), $picture->uri));
+      }
+    }
+  }
+  $vars['image_width'] = $user_image['width'] + 25;
+}
+
+/**
+ * Implements hook_preprocess_menu().
+ */
+function marinelli_preprocess_menu(&$variables, $hook) {
+  // We're doing that for main menu.
+  if ($hook == 'menu__main') {
+    // Get the current path.
+    $current_path = \Drupal::request()->getRequestUri();
+    $items = $variables['items'];
+    foreach ($items as $key => $item) {
+      // If path is current_path, set active to li.
+      if ($item['url']->toString() == $current_path) {
+        // Add active link.
+        $variables['items'][$key]['attributes']['class'] = 'active';
+      }
+    }
+  }
+}
+
+/**
+ * Sidebar class.
+ */
+function marinelli_s_c($first, $second, $layout_type, $exception) {
+  $class = "";
+  // We have both sidebars.
+  if ($first && $second) {
+    switch ($layout_type) {
+      // Content on the left.
+      case 1:
+        switch ($exception) {
+          case 1:
+            // Adjust the margins (we already have a 10px margin from sidebarWrapper)
+            $class = 'grid_3 alpha';
+            break;
+
+          case 2:
+            // Adjust the margins (we already have a 10px margin from sidebarWrapper)
+            $class = 'grid_3 omega';
+            break;
+        }
+        break;
+
+      // Content on the middle.
+      case 2:
+        switch ($exception) {
+          case 1:
+            // Put the first sidebar on the left.
+            $class = 'grid_3 pull_6';
+            break;
+
+          case 2:
+            // Put the second sidebar far from the content.
+            $class = 'grid_3';
+            break;
+        }
+        break;
+
+      // Content on the right.
+      case 3:
+        switch ($exception) {
+          case 1:
+            // Adjust margins.
+            $class = 'grid_3 alpha';
+            break;
+
+          case 2:
+            $class = 'grid_3 omega';
+            break;
+        }
+        break;
+    }
+  }
+  // We have only one sidebar.
+  elseif (($first && !$second) || (!$first && $second)) {
+    switch ($layout_type) {
+      // Content on the left.
+      case 1:
+        $class = 'grid_4';
+        break;
+
+      // Content on the middle.
+      case 2:
+        switch ($exception) {
+          case 1:
+            $class = 'grid_4 pull_8';
+            break;
+
+          case 2:
+            $class = 'grid_4';
+            break;
+        }
+        break;
+
+      // Content on the right.
+      case 3:
+        $class = 'grid_4 pull_8';
+        break;
+    }
+  }
+
+  return $class;
+}
+
+/**
+ * Sidebar wrapper class.
+ */
+function marinelli_w_c($layout_type) {
+  $class = "";
+  switch ($layout_type) {
+    // Content on the left.
+    case 1:
+      $class = 'grid_4';
+      break;
+
+    // Content on the right.
+    case 3:
+      $class = 'grid_4 pull_6';
+      break;
+  }
+  return $class;
+}
+
+/**
+ * Content class.
+ */
+function marinelli_c_c($first, $second, $layout_type, $exception) {
+  $class = "";
+
+  // Both sidebars.
+  if ($first && $second) {
+    switch ($layout_type) {
+      // Content on the left.
+      case 1:
+        $class = 'grid_6';
+        break;
+
+      // Content on the middle.
+      case 2:
+        $class = 'grid_6 push_3';
+        break;
+
+      // Content on the right.
+      case 3:
+        $class = 'grid_6 push_6';
+        break;
+    }
+  }
+  // Only one sidebar.
+  elseif (($first && !$second) || (!$first && $second)) {
+    switch ($layout_type) {
+      // Content on the left.
+      case 1:
+        $class = 'grid_8';
+        break;
+
+      // Content on the middle.
+      case 2:
+        switch ($exception) {
+          case 1:
+            $class = 'grid_8 push_4';
+            break;
+
+          case 2:
+            $class = 'grid_8';
+            break;
+        }
+        break;
+
+      // Content on the right.
+      case 3:
+        $class = 'grid_8 push_4';
+        break;
+    }
+  }
+  // No sidebars.
+  elseif (!$first && !$second) {
+    $class = 'grid_12';
+  }
+  return $class;
+}
+
+/**
+ * Overrides of theme implementations.
+ */
+function marinelli_theme() {
+  return [
+  // Function that renders classic primary menu with <h2>.
+    'custom_links' => [
+      'variables' => ['links' => NULL, 'attributes' => NULL, 'heading' => NULL],
+    ],
+    'mega_menu' => [
+      'variables' => ['menu' => NULL],
+    ],
+    'mbanner_text' => [
+      // 'variables' => array('text' => NULL),.
+    ],
+    'mbanner_nav'  => [
+      'variables' => ['prev' => NULL, 'next' => NULL],
+    ],
+  ];
+}
+
+/**
+ * Custom primary menu with <h2> for each item.
+ */
+function marinelli_custom_links($variables) {
+  global $language_url;
+  $links = $variables['links'];
+  $attributes = $variables['attributes'];
+  $heading = $variables['heading'];
+  $output = '';
+  if (count($links) > 0) {
+    $output = '';
+    if (!empty($heading)) {
+      if (is_string($heading)) {
+        // Prepare the array that will be used when the passed heading
+        // is a string.
+        $heading = [
+          'text' => $heading,
+          // Set the default level of the heading.
+          'level' => 'h2',
+        ];
+      }
+      $output .= '<' . $heading['level'];
+      if (!empty($heading['class'])) {
+        $output .= drupal_attributes(['class' => $heading['class']]);
+      }
+      $output .= '>' . check_plain($heading['text']) . '</' . $heading['level'] . '>';
+    }
+
+    $output .= '<ul' . drupal_attributes($attributes) . '>';
+
+    $num_links = count($links);
+    $i = 1;
+    foreach ($links as $key => $link) {
+      $class = [$key];
+      // Add first, last and active classes to the list of links to help out themers.
+      if ($i == 1) {
+        $class[] = 'first';
+      }
+      if ($i == $num_links) {
+        $class[] = 'last';
+      }
+      if (isset($link['href']) && ($link['href'] == $_GET['q'] || ($link['href'] == '<front>' && drupal_is_front_page()))
+          && (empty($link['language']) || $link['language']->language == $language_url->language)) {
+        $class[] = 'active';
+      }
+      $output .= '<li' . drupal_attributes(['class' => $class]) . '><h2>';
+      if (isset($link['href'])) {
+        // Pass in $link as $options, they share the same keys.
+        $output .= l($link['title'], $link['href'], $link);
+      }
+      elseif (!empty($link['title'])) {
+        // Some links are actually not links, but we wrap these in <span> for adding title and class attributes.
+        if (empty($link['html'])) {
+          $link['title'] = check_plain($link['title']);
+        }
+        $span_attributes = '';
+        if (isset($link['attributes'])) {
+          $span_attributes = drupal_attributes($link['attributes']);
+        }
+        $output .= '<span' . $span_attributes . '>' . $link['title'] . '</span>';
+      }
+      $i++;
+      $output .= "</h2></li>\n";
+    }
+    $output .= '</ul>';
+  }
+  return $output;
+}
+
+/**
+ * Mega drop down primary links.
+ *
+ * Param <array> $menu
+ *   Full array of main menu.
+ *
+ * return string
+ *   Html with mega menu to printo into page
+ */
+function marinelli_mega_menu($variables) {
+  drupal_add_js(path_to_theme() . '/js/hoverintent/hoverintent.js');
+  drupal_add_js(path_to_theme() . '/js/menu/marinelli_menu.js');
+
+  $menu = $variables['menu'];
+  $alt = theme_get_setting('menu_alt_class');
+  $output = '<ul class="megamenu-1">';
+  $count_main_links = 1;
+  foreach ($menu as $key => $value) {
+    if ($value['link']['hidden'] != 1) {
+      $id = 'menu-main-title-' . $value['link']['mlid'];
+      $options = [];
+      if (isset($value['link']['options']['attributes']['title'])) {
+        $options = ['attributes' => ['title' => $value['link']['options']['attributes']['title']]];
+      }
+      if (theme_get_setting('menu_headings') == 1) {
+        $output .= '<li class="megamenu-li-first-level" id="' . $id . '">' . l($value['link']['link_title'], $value['link']['href'], $options);
+      }
+      elseif (theme_get_setting('menu_headings') == 2) {
+        // Use <h2>, according to http://drupal.org/node/561750
+        $output .= '<li class="megamenu-li-first-level" id="' . $id . '"><h2>' . l($value['link']['link_title'], $value['link']['href'], $options) . '</h2>';
+      }
+      $class = "";
+      $altclass = "";
+      if (in_array($count_main_links, $alt)) {
+        $altclass = " alt";
+      }
+      // Choose mega class (div width based on the numbers of columns)
+      switch (count($value['below'])) {
+        case 1:
+          $class = 'one-col' . $altclass;
+          break;
+
+        case 2:
+          $class = 'two-col' . $altclass;
+          break;
+
+        case 3:
+          $class = 'three-col' . $altclass;
+          break;
+
+        case 4:
+          $class = 'four-col' . $altclass;
+          break;
+
+        case 5:
+          $class = 'five-col' . $altclass;
+          break;
+
+        case 6:
+          $class = 'six-col' . $altclass;
+          break;
+      }
+      // Check if we have children.
+      if (count($value['below']) > 0) {
+        // Open div mega.
+        $output .= '<div class="mega ' . $class . '">';
+        // Open div megamenuWrapper.
+        $output .= '<div class="megamenuWrapper">';
+
+        foreach ($value['below'] as $key2 => $value2) {
+          if ($value2['below']) {
+            // Open div menusection.
+            $output .= '<div class="menu-section">';
+          }
+          // Give an unique id for better styling.
+          $id = 'menu-section-title-' . $value2['link']['mlid'];
+          $options = ['class' => ['menu-section-link']];
+          if (isset($value2['link']['options']['attributes']['title'])) {
+            $options['attributes'] = ['title' => $value2['link']['options']['attributes']['title']];
+          }
+          if (theme_get_setting('menu_headings') == 1) {
+            // Open section list.
+            $output .= '<ul class="megamenu-section">';
+            // Check if the link is hidden.
+            if ($value2['link']['hidden'] != 1) {
+              $output .= '<li class="menu-section-title" id="' . $id . '">' . l($value2['link']['link_title'], $value2['link']['href'], $options);
+            }
+          }
+          elseif (theme_get_setting('menu_headings') == 2) {
+            // Check if the link is hidden.
+            if ($value2['link']['hidden'] != 1) {
+              $output .= '<h3>' . l($value2['link']['link_title'], $value2['link']['href'], $options) . '</h3>';
+            }
+          }
+          if ($value2['below']) {
+            // Open 2nd level list.
+            $output .= '<ul class="megamenu-2">';
+            foreach ($value2['below'] as $key3 => $value3) {
+              $options = ['class' => ['menu-leaf-link']];
+              if (isset($value3['link']['options']['attributes']['title'])) {
+                $options['attributes'] = ['title' => $value3['link']['options']['attributes']['title']];
+              }
+              // Check if the link is hidden.
+              if ($value3['link']['hidden'] != 1) {
+                // 2nd level <li>.
+                $output .= '<li class="menu-leaf-list">' . l($value3['link']['link_title'], $value3['link']['href'], $options) . '</li>';
+              }
+            }
+            $output .= '</ul>';
+            if (theme_get_setting('menu_headings') == 1) {
+              $output .= '</li>';
+              $output .= '</ul>';
+            }
+            $output .= '</div>';
+          }
+        }
+        $output .= '</div>';
+        $output .= '<div class="closepanel"><span class="close-panel" title="close this panel">' . t('close this panel') . '</span></div>';
+        $output .= '</div>';
+      }
+      $output .= '</li>';
+      $count_main_links++;
+    }
+  }
+  $output .= '</ul>';
+  return $output;
+}
+
+/**
+ * Generate markup for marinelli's banners.
+ *
+ * @return string
+ *   HTML markup to printo into page
+ */
+function marinelli_banners_markup($banners) {
+  if ($banners && theme_get_setting('banner_usage') != 0) {
+    marinelli_banners_add_js(count($banners));
+    return marinelli_banner_markup($banners);
+  }
+  else {
+    return '';
+  }
+}
+
+/**
+ * Add JS required to manage banner into this page.
+ *
+ * @param int $num_banners
+ *   Number of banner visible into this page.
+ */
+function marinelli_banners_add_js($num_banners) {
+  if ($num_banners <= 1) {
+    $num_banners['#attached']['library'][] = 'marinelli/marinelli-banner-text-js';
+  }
+  else {
+    $num_banners['#attached']['library'][] = 'marinelli/marinelli-banner-cycle-js';
+    drupal_add_js(
+      [
+        'marinelli' => [
+          'banner_effect' => theme_get_setting('banner_effect'),
+          'banner_speed'  => theme_get_setting('banner_speed'),
+          'banner_delay'  => theme_get_setting('banner_delay'),
+          'banner_pause'  => theme_get_setting('banner_pause') == 1 ? 1 : 0,
+        ],
+      ],
+      ['type' => 'setting']
+    );
+  }
+}
+
+/**
+ * Generate banners markup.
+ *
+ * @return string
+ *   HTML code to display banner markup.
+ */
+function marinelli_banner_markup($banners) {
+  $output = '';
+
+  foreach ($banners as $i => $banner) {
+    $variables = [
+      'path'  => $banner['image_path'],
+      'alt' => t('@image_desc', ['@image_desc' => $banner['image_description']]),
+      'title'   => t('@image_title', ['@image_title' => $banner['image_title']]),
+      'attributes' => [
+    // Hide all the slides except #1.
+        'class' => 'slide' . ($i != 0 ? ' marinelli-hide-no-js' : ''),
+        'id' => 'slide-number-' . $i,
+        'longdesc' => t('@image_desc', ['@image_desc' => $banner['image_description']]),
+      ],
+    ];
+    $image = theme('image', $variables);
+    $banner['image_url'] = ($banner['image_url'] == current_path()) ? FALSE : $banner['image_url'];
+    $output .= $banner['image_url'] ? l($image, $banner['image_url'], ['html' => TRUE]) : $image;
+  }
+  return $output;
+}
+
+/**
+ * Get banner to show into current page in accord with settings.
+ *
+ * @return array
+ *   Banners to show
+ */
+function marinelli_show_banners() {
+  $banners = marinelli_get_banners(FALSE);
+  $display_banners = [];
+  $path = Unicode::strtolower(\Drupal::service('path.current')->getPath());
+  foreach ($banners as $banner) {
+    $pages = Unicode::strtolower($banner['image_visibility']);
+    $page_match = drupal_match_path($path, $pages);
+    if ($path != $_GET['q']) {
+      $page_match = $page_match || \Drupal::service('path.current')->getPath($pages);
+    }
+    if ($page_match) {
+      $display_banners[] = $banner;
+    }
+  }
+  return $display_banners;
+}

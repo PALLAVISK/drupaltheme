@@ -1,0 +1,123 @@
+/*
+*
+* block styles
+*
+*/
+
+
+/*	Structure
+-------------------------------------------------------------- */
+
+.block {
+  margin-bottom: 15px;
+}
+.user-before-login{padding-right: 10px;}
+#advertise.unlimited .block {
+  padding: 5px;
+  margin-bottom: 0px;
+}
+
+.block .title {
+  margin: 0px;
+  padding-bottom: 3px;
+  margin-bottom: 10px;
+}
+
+.blockhide .title { /* blocks with no style (based on theme settings) */
+  visibility: hidden; /* do not remove hidden titles */
+  position: absolute;
+  left: -5000px;
+  height: 0em;
+}
+
+.utility .block {
+  margin: 0px;
+}
+
+.user-before-login .block-title { /* login block */
+  padding: 5px 10px 5px 0px;
+}
+
+.user-before-login .title { /* login block */
+  margin-bottom: 0px;
+  margin-left: 10px;
+}
+
+.user-before-login .content { /* login block */
+  padding: 10px;
+}
+
+.user-before-login .form-item { /* login block */
+  margin-top: 0px;
+}
+
+/*	Look & Feel
+-------------------------------------------------------------- */
+
+.block .title {
+  font-size: 1.5em;
+  border-bottom: 1px solid #e2e2e2;
+}
+
+#advertise.unlimited .block .title {
+  border-bottom: none;
+}
+
+.user-before-login .title {
+  font-size: 1em;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: white;
+  border: none;
+  background: url(../images/icons/key.png) no-repeat top right;
+}
+
+.user-before-login .block-title {
+  background: #054b81;
+}
+
+.user-before-login .content {
+  background: #eee;
+  border-left: 1px solid #e2e2e2;
+  border-right: 1px solid #e2e2e2;
+  border-bottom: 1px solid #e2e2e2;
+}
+.outsidecontent .block .title {
+  border-bottom: none;
+}
+
+.user-before-login .before-login-form .js-form-item-name label, .user-before-login .before-login-form .js-form-type-password label{
+      width: 100%;
+    float: left;
+}
+.user-before-login .before-login-form .js-form-item-name, .user-before-login .before-login-form .js-form-type-password{
+  margin-bottom: 1em;
+}
+
+.user-before-login .before-login-form .js-form-item-name label::after, .user-before-login .before-login-form .js-form-type-password label::after{
+  content: "*";
+  color: red;
+  margin-left: 2px;
+}
+.user-before-login .before-login-form .js-form-item-name input:focus, .user-before-login .before-login-form .js-form-type-password input:focus{
+  outline: none;
+}
+.user-before-login .before-login-form .form-submit{
+    background: #054b81;
+    border: 1px solid #2d7fbe;
+    color: white;
+    position: relative;
+    bottom: -35px;
+}
+
+.user-before-login .before-login-form ul{
+    position: relative;
+    top: -60px;
+    padding-left: 0px;
+    margin-bottom: -10px;
+    list-style: none;
+    padding-top: 15px;
+}
+.user-before-login .before-login-form ul li{
+      margin-bottom: 5px;
+}

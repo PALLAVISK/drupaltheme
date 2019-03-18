@@ -1,6 +1,6 @@
 name: marinelli
 description: 'New Drupal 8 Twig Theme created with the help of Twigify.'
-core: 8.x
+# core: 8.x
 engine: twig
 type: theme
 regions:
@@ -28,13 +28,7 @@ libraries:
   - core/nomalize
 
 # Information added by Drupal.org packaging script on 2017-12-19
-# version: '8.x-1.x-dev'
-# core: '8.x'
-# project: 'marinelli'
-# datestamp: 1513677787
-
-# Information added by Drupal.org packaging script on 2019-02-13
 version: '8.x-1.x-dev'
 core: '8.x'
 project: 'marinelli'
-datestamp: 1550065385
+datestamp: 1513677787
